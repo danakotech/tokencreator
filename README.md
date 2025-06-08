@@ -194,7 +194,7 @@ npm run dev
 
 ### **Despliegue de Contratos**
 \`\`\`bash
-# Usar Remix IDE para desplegar 
+# Usar Remix IDE para desplegar SimpleTokenFactory.sol
 # Configurar la dirección del contrato en lib/web3-utils.ts
 # Verificar el contrato en Etherscan
 \`\`\`
@@ -257,7 +257,7 @@ npm run dev
 
 ## 🔐 Contratos Inteligentes
 
-
+### **SimpleTokenFactory.sol**
 Contrato principal que gestiona la creación de tokens.
 
 **Funciones Principales:**
@@ -271,7 +271,7 @@ Contrato principal que gestiona la creación de tokens.
 - `PaymentReceived`: Registra pagos recibidos
 - `PaymentTransferred`: Confirma transferencias exitosas
 
-
+### **CustomToken.sol**
 Contrato de token ERC-20 con características personalizables.
 
 **Funciones Estándar:**
@@ -370,6 +370,10 @@ Contrato de token ERC-20 con características personalizables.
 
 ### **Cómo Contribuir**
 1. **Fork** el repositorio
+2. **Crear** una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. **Commit** tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. **Push** a la rama (`git push origin feature/AmazingFeature`)
+5. **Abrir** un Pull Request
 
 ### **Guías de Contribución**
 - **Code Style**: Seguir las convenciones de TypeScript y Solidity
@@ -397,4 +401,22 @@ Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](L
 
 ## 📞 Soporte
 
-criptocurrencia.com * legionbitcoin.com - Democratizando la creación de tokens para todos 🚀
+### **Documentación**
+- **Wiki**: Documentación detallada en el wiki del proyecto
+- **API Docs**: Documentación de APIs disponible
+- **Video Tutorials**: Tutoriales en video para usuarios
+
+### **Comunidad**
+- **Discord**: Servidor de Discord para soporte en tiempo real
+- **GitHub Issues**: Para reportar bugs y solicitar features
+- **Email**: Contacto directo para consultas específicas
+
+### **FAQ**
+- **¿Cómo crear mi primer token?**: Ver guía de inicio rápido
+- **¿Qué redes están soportadas?**: Ethereum, Sepolia, Polygon
+- **¿Cuánto cuesta crear un token?**: Precio base + características adicionales
+- **¿Puedo modificar mi token después?**: Depende de las características habilitadas
+
+---
+
+**Token Creator Platform** - Democratizando la creación de tokens para todos 🚀
