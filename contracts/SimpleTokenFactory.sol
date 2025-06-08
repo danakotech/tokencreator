@@ -31,10 +31,23 @@ contract SimpleTokenFactory {
         bool success
     );
     
+    // Evento adicional para debugging detallado
+    event PaymentDebug(
+        string step,
+        address from,
+        address to,
+        uint256 amount,
+        bool success,
+        bytes data
+    );
+    
     constructor(address _feeReceiver) {
         require(_feeReceiver != address(0), "Fee receiver cannot be zero address");
         owner = msg.sender;
         feeReceiver = _feeReceiver;
+        
+        // Emitir evento de configuración inicial
+        emit PaymentDebug("constructor", msg.sender, _feeReceiver, 0, true, "");
     }
     
     function createToken(
@@ -50,18 +63,30 @@ contract SimpleTokenFactory {
         
         // Emitir evento de pago recibido
         emit PaymentReceived(msg.sender, address(this), msg.value);
+        emit PaymentDebug("payment_received", msg.sender, address(this), msg.value, true, "");
         
         // CRÍTICO: Transferir el pago INMEDIATAMENTE al fee receiver
         uint256 amountToTransfer = msg.value;
         
+        // Log antes de la transferencia
+        emit PaymentDebug("before_transfer", address(this), feeReceiver, amountToTransfer, false, "");
+        
         // Usar call para transferir ETH con verificación detallada
         (bool sent, bytes memory data) = feeReceiver.call{value: amountToTransfer}("");
+        
+        // Log después de la transferencia
+        emit PaymentDebug("after_transfer", address(this), feeReceiver, amountToTransfer, sent, data);
         
         // Emitir evento de transferencia para debugging
         emit PaymentTransferred(feeReceiver, amountToTransfer, sent);
         
         // Si la transferencia falla, revertir toda la transacción
-        require(sent, string(abi.encodePacked("Payment transfer failed. Data: ", data)));
+        if (!sent) {
+            emit PaymentDebug("transfer_failed", address(this), feeReceiver, amountToTransfer, false, data);
+            revert(string(abi.encodePacked("Payment transfer failed. Data length: ", uintToString(data.length))));
+        }
+        
+        emit PaymentDebug("transfer_success", address(this), feeReceiver, amountToTransfer, true, "");
         
         // Solo después de transferir exitosamente, crear el token
         CustomToken newToken = new CustomToken(
@@ -88,6 +113,8 @@ contract SimpleTokenFactory {
             totalSupply,
             amountToTransfer
         );
+        
+        emit PaymentDebug("token_created", msg.sender, tokenAddress, amountToTransfer, true, "");
         
         return tokenAddress;
     }
@@ -118,18 +145,22 @@ contract SimpleTokenFactory {
         return address(this).balance;
     }
     
-    // Función de emergencia para retirar fondos atascados (SOLO PARA DEBUGGING)
+    // Función de emergencia para retirar fondos atascados
     function emergencyWithdraw() external {
         require(msg.sender == owner, "Only owner");
         require(address(this).balance > 0, "No funds to withdraw");
         
         uint256 amount = address(this).balance;
         
-        // Transferir al fee receiver, no al owner
-        (bool sent, ) = feeReceiver.call{value: amount}("");
-        require(sent, "Emergency withdrawal failed");
+        emit PaymentDebug("emergency_withdraw_start", address(this), feeReceiver, amount, false, "");
         
+        // Transferir al fee receiver, no al owner
+        (bool sent, bytes memory data) = feeReceiver.call{value: amount}("");
+        
+        emit PaymentDebug("emergency_withdraw_end", address(this), feeReceiver, amount, sent, data);
         emit PaymentTransferred(feeReceiver, amount, sent);
+        
+        require(sent, "Emergency withdrawal failed");
     }
     
     // Función para verificar si una dirección puede recibir ETH
@@ -137,14 +168,38 @@ contract SimpleTokenFactory {
         require(msg.sender == owner, "Only owner");
         require(msg.value > 0, "Must send some ETH");
         
+        emit PaymentDebug("test_transfer_start", msg.sender, recipient, msg.value, false, "");
+        
         (bool sent, bytes memory data) = recipient.call{value: msg.value}("");
+        
+        emit PaymentDebug("test_transfer_end", msg.sender, recipient, msg.value, sent, data);
         emit PaymentTransferred(recipient, msg.value, sent);
         
         if (!sent) {
             // Si falla, devolver el ETH al sender
-            (bool refunded, ) = msg.sender.call{value: msg.value}("");
+            (bool refunded, bytes memory refundData) = msg.sender.call{value: msg.value}("");
+            emit PaymentDebug("test_refund", address(this), msg.sender, msg.value, refunded, refundData);
             require(refunded, "Refund failed");
         }
+    }
+    
+    // Función para verificar la configuración actual
+    function getConfiguration() external view returns (
+        address _owner,
+        address _feeReceiver,
+        uint256 _baseFee,
+        uint256 _featurePrice,
+        uint256 _contractBalance,
+        uint256 _totalTokens
+    ) {
+        return (
+            owner,
+            feeReceiver,
+            baseFee,
+            featurePrice,
+            address(this).balance,
+            deployedTokens.length
+        );
     }
     
     // Admin functions
@@ -155,9 +210,7 @@ contract SimpleTokenFactory {
         address oldReceiver = feeReceiver;
         feeReceiver = _feeReceiver;
         
-        // Emitir evento para tracking
-        emit PaymentTransferred(oldReceiver, 0, false); // Indicar cambio
-        emit PaymentTransferred(_feeReceiver, 0, true);  // Nueva dirección
+        emit PaymentDebug("fee_receiver_updated", oldReceiver, _feeReceiver, 0, true, "");
     }
     
     function updatePrices(uint256 _baseFee, uint256 _featurePrice) external {
@@ -175,10 +228,12 @@ contract SimpleTokenFactory {
     // Función para recibir ETH directamente (fallback)
     receive() external payable {
         emit PaymentReceived(msg.sender, address(this), msg.value);
+        emit PaymentDebug("receive_function", msg.sender, address(this), msg.value, true, "");
         
         // Transferir inmediatamente al fee receiver
         if (msg.value > 0) {
-            (bool sent, ) = feeReceiver.call{value: msg.value}("");
+            (bool sent, bytes memory data) = feeReceiver.call{value: msg.value}("");
+            emit PaymentDebug("receive_transfer", address(this), feeReceiver, msg.value, sent, data);
             emit PaymentTransferred(feeReceiver, msg.value, sent);
         }
     }
@@ -186,12 +241,34 @@ contract SimpleTokenFactory {
     // Fallback function
     fallback() external payable {
         emit PaymentReceived(msg.sender, address(this), msg.value);
+        emit PaymentDebug("fallback_function", msg.sender, address(this), msg.value, true, "");
         
         // Transferir inmediatamente al fee receiver
         if (msg.value > 0) {
-            (bool sent, ) = feeReceiver.call{value: msg.value}("");
+            (bool sent, bytes memory data) = feeReceiver.call{value: msg.value}("");
+            emit PaymentDebug("fallback_transfer", address(this), feeReceiver, msg.value, sent, data);
             emit PaymentTransferred(feeReceiver, msg.value, sent);
         }
+    }
+    
+    // Función auxiliar para convertir uint a string
+    function uintToString(uint256 value) internal pure returns (string memory) {
+        if (value == 0) {
+            return "0";
+        }
+        uint256 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            value /= 10;
+        }
+        return string(buffer);
     }
 }
 

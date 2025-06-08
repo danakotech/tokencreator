@@ -25,7 +25,7 @@ export const networks: Record<string, NetworkConfig> = {
     explorerUrl: "https://sepolia.etherscan.io",
     apiKey: ETHERSCAN_API_KEY,
     currency: "ETH",
-    factoryAddress: "0x2420258D9A458a2C4Fa4498BF22443Dc066945a8", // Actualizada a la dirección correcta
+    factoryAddress: "0x24C115C1c542B51D17F86d19CCfE8B1d3787865C", // Actualizada a la dirección correcta
   },
   ethereum: {
     name: "Ethereum Mainnet",
